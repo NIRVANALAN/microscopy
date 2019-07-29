@@ -7,6 +7,9 @@
 * PyTorch: 1.1.0
 * Packages: torch, numpy, tqdm 
 
+## Cls:
+bin/trainval_cls.py
+
 
 
 
