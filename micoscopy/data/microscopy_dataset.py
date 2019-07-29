@@ -46,8 +46,8 @@ def pil_loader(img_str):
 
 
 class MicroscopyClassification(data.Dataset):
-	def __init__(self, root, file_csv, img_size, transform=None, target_transform=None, crop_size=-1):
-		self.root = root
+	def __init__(self, train_list, img_size, transform=None, target_transform=None, crop_size=-1):
+		# self.root = root
 		self.img_size = img_size
 		# self.path_images = os.path.join(root, 'JPEGImage')
 		# self.path_annotation = os.path.join(root, 'Annotation')
@@ -57,7 +57,7 @@ class MicroscopyClassification(data.Dataset):
 		self.target_transform = target_transform
 
 		self.classes = object_categories
-		self.images = read_object_labels(file_csv)
+		self.images = read_object_labels(train_list)
 
 		print('[dataset] Microscopy classification number of classes=%d  number of images=%d' % (
 			len(self.classes), len(self.images)))

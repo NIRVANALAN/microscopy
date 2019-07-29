@@ -14,9 +14,9 @@ from micoscopy.dist import synchronize
 
 
 def main(args):
-	num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
-	args.num_gpus = num_gpus
-	args.distributed = num_gpus > 1
+	# num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
+	# args.num_gpus = num_gpus
+	args.distributed = False
 	print(f'Using distributed: {args.distributed}')
 	if args.distributed:
 		print(f'Local rank: {args.local_rank}')
@@ -68,29 +68,20 @@ def main(args):
 
 	criterion.to(device)
 
-	if args.loss.get('kpt', None) == 'mse':
-		kpt_criterion = torch.nn.MSELoss(size_average=args.loss.kpt_size_average)
-		print('kpt using MSELoss')
-	else:
-		kpt_criterion = torch.nn.BCEWithLogitsLoss(
-			size_average=args.loss.kpt_size_average)
-	kpt_criterion.to(device)
-
 	train_loader = build_train_loader(args)
 	torch.cuda.empty_cache()
-	train(args, model, train_loader, criterion, kpt_criterion, optimizer, device)
+	train(args, model, train_loader, criterion,  optimizer, device)
 
 
-def train(args, model, train_loader, criterion, kpt_criterion, optimizer, device):
+def train(args, model, train_loader, criterion,  optimizer, device):
 	model.train()
 	batch_times = AverageMeter(args.print_freq * 2)
 	data_times = AverageMeter(args.print_freq * 2)
 	cls_losses = AverageMeter(args.print_freq * 2)
-	# kpt_losses = AverageMeter(args.print_freq * 2)
 	losses = AverageMeter(args.print_freq * 2)
 	end = time.time()
 	best_ap = 0.0
-	for batch_index, (data, labels, bboxes, kpt_labels) in enumerate(train_loader):
+	for batch_index, (data, labels) in enumerate(train_loader):
 		batch_index += args.last_iter + 1
 		if batch_index in args.train.lr_iters:
 			print('update learning rate')
@@ -101,28 +92,14 @@ def train(args, model, train_loader, criterion, kpt_criterion, optimizer, device
 		data, names = data
 		data = data.to(device)
 		labels = labels.to(device)
-		kpt_labels = kpt_labels.to(device)
 		output = model(data)
-		if len(output) == 2:
-			output, kpt_output = output
-			cls_loss = criterion(output, labels)
-		elif len(output) == 4:
-			kpt_output = output[-1]
-			cls_loss = sum(map(lambda x: criterion(x, labels), output[:3]))
-		# elif len(output) == 5:
-		#    output,kpt1,kpt2,kpt3,kpt4 = output
-		#    cls_loss = criterion(output, labels)
-		#    kpt_output = kpt4
-		kpt_loss = kpt_criterion(kpt_output, kpt_labels)
-		loss = cls_loss + kpt_loss * args.loss.kpt_weight
+		cls_loss = criterion(output, labels)
+		loss = cls_loss
 		reduced_cls_loss = torch.Tensor([cls_loss.data.item()]).to(device)
-		torch.distributed.all_reduce(reduced_cls_loss)
+		# torch.distributed.all_reduce(reduced_cls_loss)
 		cls_losses.update(reduced_cls_loss.data.item())
-		reduced_kpt_loss = torch.Tensor([kpt_loss.data.item()]).to(device)
-		# torch.distributed.all_reduce(reduced_kpt_loss)
-		# kpt_losses.update(reduced_kpt_loss.data.item())
 		reduced_loss = torch.Tensor([loss.data.item()]).to(device)
-		torch.distributed.all_reduce(reduced_loss)
+		# torch.distributed.all_reduce(reduced_loss)
 		losses.update(reduced_loss.data.item())
 		optimizer.zero_grad()
 		loss.backward()
@@ -136,14 +113,12 @@ def train(args, model, train_loader, criterion, kpt_criterion, optimizer, device
 				  'Data {:.3f} ({:.3f})\t'
 				  'Loss {:.4f} ({:.4f})\t'
 				  'Cls Loss {:.4f} ({:.4f})\t'
-				# 'Kpt Loss {:.4f} ({:.4f})'
 				.format(
 				get_time(), batch_index, len(train_loader),
 				batch_time_current, batch_times.avg,
 				data_time_current, data_times.avg,
 				loss.data.item(), losses.avg,
 				cls_loss.data.item(), cls_losses.avg,
-				# kpt_loss.data.item(), kpt_losses.avg
 			)
 			)
 		end = time.time()
@@ -200,14 +175,14 @@ def test(args, model, device):
 			tmp_output[:real_batch_size] += output.data
 			tmp_flags = torch.zeros(test_batch_size).to(device)
 			tmp_flags[:real_batch_size] += 1
-			torch.distributed.all_gather(all_labels, tmp_labels)
-			torch.distributed.all_gather(all_output, tmp_output)
-			torch.distributed.all_gather(all_flags, tmp_flags)
-			if args.local_rank == 0:
-				all_flags = torch.stack(all_flags).view(-1).byte()
-				all_labels = torch.stack(all_labels).view(-1, labels.size(1))[all_flags]
-				all_output = torch.stack(all_output).view(-1, output.size(1))[all_flags]
-				ap_meter.add(all_output.cpu(), all_labels.cpu())
+			# torch.distributed.all_gather(all_labels, tmp_labels)
+			# torch.distributed.all_gather(all_output, tmp_output)
+			# torch.distributed.all_gather(all_flags, tmp_flags)
+			# if args.local_rank == 0:
+			all_flags = torch.stack(all_flags).view(-1).byte()
+			all_labels = torch.stack(all_labels).view(-1, labels.size(1))[all_flags]
+			all_output = torch.stack(all_output).view(-1, output.size(1))[all_flags]
+			ap_meter.add(all_output.cpu(), all_labels.cpu())
 			output = torch.sigmoid(output)
 			output = output.data
 			labels = labels.data
@@ -234,11 +209,11 @@ def test(args, model, device):
 				true_bbox += tmp_true_bbox
 				num_bbox += tmp_num_bbox
 
-	torch.distributed.all_reduce(tp)
-	torch.distributed.all_reduce(pos_pred)
-	torch.distributed.all_reduce(pos_label)
-	torch.distributed.all_reduce(true_bbox)
-	torch.distributed.all_reduce(num_bbox)
+	# torch.distributed.all_reduce(tp)
+	# torch.distributed.all_reduce(pos_pred)
+	# torch.distributed.all_reduce(pos_label)
+	# torch.distributed.all_reduce(true_bbox)
+	# torch.distributed.all_reduce(num_bbox)
 	precision = tp / pos_pred * 100.0
 	recall = tp / pos_label * 100.0
 	f1_score = 2.0 * tp / (pos_pred + pos_label) * 100.0
