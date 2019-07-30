@@ -47,8 +47,8 @@ def pil_loader(img_str):
 
 
 class MicroscopyClassification(data.Dataset):
-	def __init__(self, train_list, img_size, transform=None, target_transform=None, crop_size=-1):
-		# self.root = root
+	def __init__(self, root,train_list, img_size, transform=None, target_transform=None, crop_size=-1):
+		self.root = root
 		self.img_size = img_size
 		# self.path_images = os.path.join(root, 'JPEGImage')
 		# self.path_annotation = os.path.join(root, 'Annotation')
@@ -65,7 +65,7 @@ class MicroscopyClassification(data.Dataset):
 
 	def __getitem__(self, index):
 		path, target, mask_target = self.images[index]
-		img = Image.open(path).convert('RGB')
+		img = Image.open(os.path.join(self.data.root,path)).convert('RGB')
 		img = img.resize((self.img_size, self.img_size), Image.BILINEAR)
 		# if self.crop_size > 0:
 		# 	start_w = int((self.img_size - self.crop_size) * np.random.random())

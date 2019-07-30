@@ -196,21 +196,21 @@ def test(args, model, device):
 				pos_pred[i] += torch.sum(pred, dim=0).float()
 				pos_label[i] += torch.sum(labels, dim=0).float()
 			# synchronize()
-			w, h = kpt_output.size()[2:]
-			kpt_output = kpt_output.view(kpt_output.size(0), kpt_output.size(1), -1)
-			all_pred = torch.argmax(kpt_output, dim=2)
-			for i in range(all_pred.size(0)):
-				pred = [((all_pred[i][j].item() % w + 0.5) / w, (all_pred[i][j].item() / w + 0.5) / h) for j in
-						range(5)]
-				tmp_true_bbox = torch.zeros(args.model.num_classes).to(device)
-				tmp_num_bbox = torch.zeros(args.model.num_classes).to(device)
-				for bbox in bboxes[i]:
-					cls = bbox[0]
-					tmp_num_bbox[cls] = 1.0
-					if bbox[1] < pred[cls][0] < bbox[3] and bbox[2] < pred[cls][1] < bbox[4]:
-						tmp_true_bbox[cls] = 1.0
-				true_bbox += tmp_true_bbox
-				num_bbox += tmp_num_bbox
+			# w, h = kpt_output.size()[2:]
+			# kpt_output = kpt_output.view(kpt_output.size(0), kpt_output.size(1), -1)
+			# all_pred = torch.argmax(kpt_output, dim=2)
+			# for i in range(all_pred.size(0)):
+			# 	pred = [((all_pred[i][j].item() % w + 0.5) / w, (all_pred[i][j].item() / w + 0.5) / h) for j in
+			# 			range(5)]
+			# 	tmp_true_bbox = torch.zeros(args.model.num_classes).to(device)
+			# 	tmp_num_bbox = torch.zeros(args.model.num_classes).to(device)
+			# 	for bbox in bboxes[i]:
+			# 		cls = bbox[0]
+			# 		tmp_num_bbox[cls] = 1.0
+			# 		if bbox[1] < pred[cls][0] < bbox[3] and bbox[2] < pred[cls][1] < bbox[4]:
+			# 			tmp_true_bbox[cls] = 1.0
+			# 	true_bbox += tmp_true_bbox
+			# 	num_bbox += tmp_num_bbox
 
 	# torch.distributed.all_reduce(tp)
 	# torch.distributed.all_reduce(pos_pred)
@@ -220,7 +220,7 @@ def test(args, model, device):
 	precision = tp / pos_pred * 100.0
 	recall = tp / pos_label * 100.0
 	f1_score = 2.0 * tp / (pos_pred + pos_label) * 100.0
-	localization = true_bbox / num_bbox * 100.0
+	# localization = true_bbox / num_bbox * 100.0
 	if args.local_rank == 0:
 		table = PrettyTable(['T4', 'T4R'])
 		row = ['Average Precision']
@@ -233,10 +233,10 @@ def test(args, model, device):
 						for j in range(5)])
 			row.append('{:.2f}, {:.2f}, {:.2f}'.format(precision[i].mean(), recall[i].mean(), f1_score[i].mean()))
 			table.add_row(row)
-		row = ['Localization']
-		row.extend(['{:.2f}'.format(localization[i]) for i in range(5)])
-		row.append('{:.2f}'.format(localization.mean()))
-		table.add_row(row)
+		# row = ['Localization']
+		# row.extend(['{:.2f}'.format(localization[i]) for i in range(5)])
+		# row.append('{:.2f}'.format(localization.mean()))
+		# table.add_row(row)
 		print(table)
 		return 100.0 * ap_meter.value().mean()
 	return 0.0

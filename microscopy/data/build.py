@@ -58,7 +58,7 @@ def build_val_loader(args):
 										 args.data.test_bboxes_list, False, args.data.test_img_size, -1,
 										 args.data.scale, 0, val_transform, args=args)
 	else:
-		val_dataset = MicroscopyClassification(args.data.test_list,
+		val_dataset = MicroscopyClassification(args.root,args.data.test_list,
 											   args.data.test_img_size, val_transform)
 	test_batch_size = args.data.test_batch_size
 	if args.distributed:
