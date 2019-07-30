@@ -5,6 +5,8 @@ import yaml
 import torch
 import argparse
 import numpy as np
+if not os.getcwd() in sys.path:
+	sys.path.append(os.getcwd())
 from prettytable import PrettyTable
 from easydict import EasyDict
 from microscopy.data import build_train_loader, build_val_loader
@@ -12,13 +14,11 @@ from microscopy.models import build_model
 from microscopy.util import AverageMeter, AveragePrecisionMeter, save_state, FocalLoss, get_time
 from microscopy.dist import synchronize
 
-if not os.getcwd() in sys.path:
-	sys.path.append(os.getcwd())
 
 
 def main(args):
-	# num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
-	# args.num_gpus = num_gpus
+	num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
+	args.num_gpus = num_gpus
 	args.distributed = False
 	print(f'Using distributed: {args.distributed}')
 	if args.distributed:
@@ -168,24 +168,24 @@ def test(args, model, device):
 				o1, o2, o3, kpt_output = output
 				output = o3
 			test_batch_size = args.data.test_batch_size // args.num_gpus
-			all_labels = [torch.zeros(test_batch_size, labels.size(1)).to(device) for _ in range(args.num_gpus)]
-			all_output = [torch.zeros(test_batch_size, output.size(1)).to(device) for _ in range(args.num_gpus)]
-			all_flags = [torch.zeros(test_batch_size).to(device) for _ in range(args.num_gpus)]
-			real_batch_size = labels.size(0)
-			tmp_labels = torch.zeros(test_batch_size, labels.size(1)).to(device)
-			tmp_labels[:real_batch_size] += labels.data
-			tmp_output = torch.zeros(test_batch_size, output.size(1)).to(device)
-			tmp_output[:real_batch_size] += output.data
-			tmp_flags = torch.zeros(test_batch_size).to(device)
-			tmp_flags[:real_batch_size] += 1
-			# torch.distributed.all_gather(all_labels, tmp_labels)
+			#all_labels = [torch.zeros(test_batch_size, labels.size(1)).to(device) for _ in range(args.num_gpus)]
+			#all_output = [torch.zeros(test_batch_size, output.size(1)).to(device) for _ in range(args.num_gpus)]
+			#all_flags = [torch.zeros(test_batch_size).to(device) for _ in range(args.num_gpus)]
+			#real_batch_size = labels.size(0)
+			#tmp_labels = torch.zeros(test_batch_size, labels.size(1)).to(device)
+			#tmp_labels[:real_batch_size] += labels.data
+			#tmp_output = torch.zeros(test_batch_size, output.size(1)).to(device)
+			#tmp_output[:real_batch_size] += output.data
+			#tmp_flags = torch.zeros(test_batch_size).to(device)
+			#tmp_flags[:real_batch_size] += 1
+			## torch.distributed.all_gather(all_labels, tmp_labels)
 			# torch.distributed.all_gather(all_output, tmp_output)
 			# torch.distributed.all_gather(all_flags, tmp_flags)
 			# if args.local_rank == 0:
-			all_flags = torch.stack(all_flags).view(-1).byte()
-			all_labels = torch.stack(all_labels).view(-1, labels.size(1))[all_flags]
-			all_output = torch.stack(all_output).view(-1, output.size(1))[all_flags]
-			ap_meter.add(all_output.cpu(), all_labels.cpu())
+			#all_flags = torch.stack(all_flags).view(-1).byte()
+			#all_labels = torch.stack(all_labels).view(-1, labels.size(1))[all_flags]
+			#all_output = torch.stack(all_output).view(-1, output.size(1))[all_flags]
+			#ap_meter.add(all_output.cpu(), all_labels.cpu())
 			output = torch.sigmoid(output)
 			output = output.data
 			labels = labels.data

@@ -1,4 +1,5 @@
 data:
+  root: /work/06633/ylan/maverick2/data/dataset
   train_list: /work/06633/ylan/maverick2/data/dataset/320_dataset/train_list_T4T4R.txt
   test_list: /work/06633/ylan/maverick2/data/dataset/320_dataset/test_list_T4T4R.txt
   train_img_size: 320
