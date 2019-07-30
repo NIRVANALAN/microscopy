@@ -8,10 +8,10 @@ import numpy as np
 from prettytable import PrettyTable
 from easydict import EasyDict
 from tqdm import tqdm
-from micoscopy.data import build_val_loader
-from micoscopy.models import build_model
-from micoscopy.util import AverageMeter, AveragePrecisionMeter
-from micoscopy.dist import synchronize,get_rank
+from microscopy.data import build_val_loader
+from microscopy.models import build_model
+from microscopy.util import AverageMeter, AveragePrecisionMeter
+from microscopy.dist import synchronize,get_rank
 
 
 def get_time():

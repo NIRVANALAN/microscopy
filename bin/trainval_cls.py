@@ -1,16 +1,19 @@
 import os
+import sys
 import time
 import yaml
 import torch
 import argparse
-import random
 import numpy as np
 from prettytable import PrettyTable
 from easydict import EasyDict
-from micoscopy.data import build_train_loader, build_val_loader
-from micoscopy.models import build_model
-from micoscopy.util import AverageMeter, AveragePrecisionMeter, save_state, FocalLoss, get_time
-from micoscopy.dist import synchronize
+from microscopy.data import build_train_loader, build_val_loader
+from microscopy.models import build_model
+from microscopy.util import AverageMeter, AveragePrecisionMeter, save_state, FocalLoss, get_time
+from microscopy.dist import synchronize
+
+if not os.getcwd() in sys.path:
+	sys.path.append(os.getcwd())
 
 
 def main(args):
@@ -70,10 +73,10 @@ def main(args):
 
 	train_loader = build_train_loader(args)
 	torch.cuda.empty_cache()
-	train(args, model, train_loader, criterion,  optimizer, device)
+	train(args, model, train_loader, criterion, optimizer, device)
 
 
-def train(args, model, train_loader, criterion,  optimizer, device):
+def train(args, model, train_loader, criterion, optimizer, device):
 	model.train()
 	batch_times = AverageMeter(args.print_freq * 2)
 	data_times = AverageMeter(args.print_freq * 2)

@@ -7,10 +7,10 @@ import random
 import numpy as np
 from prettytable import PrettyTable
 from easydict import EasyDict
-from micoscopy.data import build_train_loader, build_val_loader
-from micoscopy.models import build_model
-from micoscopy.util import AverageMeter, AveragePrecisionMeter, save_state, FocalLoss, get_time
-from micoscopy.dist import synchronize
+from microscopy.data import build_train_loader, build_val_loader
+from microscopy.models import build_model
+from microscopy.util import AverageMeter, AveragePrecisionMeter, save_state, FocalLoss, get_time
+from microscopy.dist import synchronize
 
 
 def main(args):

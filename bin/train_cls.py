@@ -7,10 +7,10 @@ import random
 import numpy as np
 from easydict import EasyDict
 from torch.nn.modules import Module
-from micoscopy.data import build_train_loader
-from micoscopy.models import build_model
-from micoscopy.util import AverageMeter, AveragePrecisionMeter, save_state
-from micoscopy.dist import synchronize
+from microscopy.data import build_train_loader
+from microscopy.models import build_model
+from microscopy.util import AverageMeter, AveragePrecisionMeter, save_state
+from microscopy.dist import synchronize
 import pdb
 
 def get_time():
