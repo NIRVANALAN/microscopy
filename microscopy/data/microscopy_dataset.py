@@ -30,11 +30,12 @@ def read_object_labels(file, header=True):
 	print('[dataset] read', file)
 	with open(file, 'r') as f:
 		for line in f:
-			img, cell_type, mask_label = line.split()
+			img, cell_type, mask_label = line.split(';')
 			cell_label = object_categories.index(cell_type)
+			mask_label = eval(mask_label.strip('\n'))
 			mask_label = (np.asarray(mask_label)).astype(np.float32)
 			mask_label = torch.from_numpy(mask_label)
-			images.append((img, mask_label))
+			images.append((img, cell_label, mask_label))
 	return images
 
 
