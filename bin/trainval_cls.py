@@ -155,7 +155,7 @@ def test(args, model, device):
 
 	val_loader = build_val_loader(args)
 	with torch.no_grad():
-		for batch_index, (data, labels, bboxes, kpt_labels) in enumerate(val_loader):
+		for batch_index, (data, labels) in enumerate(val_loader):
 			if args.local_rank == 0 and batch_index % args.print_freq == 0:
 				print('{} [{}/{}]'.format(get_time(), batch_index, len(val_loader)))
 			data, names = data
