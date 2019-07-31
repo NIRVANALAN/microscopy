@@ -189,7 +189,7 @@ def test(args, model, device):
             # if args.local_rank == 0:
             #all_flags = torch.stack(all_flags).view(-1).byte()
             #all_labels = torch.stack(all_labels).view(-1, labels.size(1))[all_flags]
-            if output.dim == 2:
+            if output.dim() == 2:
                 predicted = torch.max(output,1)[1]
             else:
                 predicted = torch.max(output,0)[1]
