@@ -27,6 +27,7 @@ loss:
   kpt_size_average: True
   cls_loss: CE
 use_kpt: False
+epochs: 50
 save_path: checkpoints/microscopy/cls_resnet50_baseline
 save_freq: 1000
 print_freq: 10

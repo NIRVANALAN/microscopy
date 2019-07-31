@@ -84,65 +84,68 @@ def train(args, model, train_loader, criterion, optimizer, device):
     losses = AverageMeter(args.print_freq * 2)
     end = time.time()
     best_correct = 0.0
-    for batch_index, (data, labels) in enumerate(train_loader):
-        batch_index += args.last_iter + 1
-        if batch_index in args.train.lr_iters:
-            print('update learning rate')
-            for param_group in optimizer.state_dict()['param_groups']:
-                param_group['lr'] = param_group['lr'] * args.train.lr_gamma
-        data_time_current = time.time() - end
-        data_times.update(data_time_current)
-        data, names = data
-        data = data.to(device)
-        labels = labels.to(device)
-        output = model(data)
-        cls_loss = criterion(output, labels)
-        loss = cls_loss
-        reduced_cls_loss = torch.Tensor([cls_loss.data.item()]).to(device)
-        # torch.distributed.all_reduce(reduced_cls_loss)
-        cls_losses.update(reduced_cls_loss.data.item())
-        reduced_loss = torch.Tensor([loss.data.item()]).to(device)
-        # torch.distributed.all_reduce(reduced_loss)
-        losses.update(reduced_loss.data.item())
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+    num_epochs = args.get('epochs',60)
+    print(f'num_epochs:{num_epochs}')
+    for epoch in range(num_epochs):
+        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        print('-' * 10)
+        for batch_index, (data, labels) in enumerate(train_loader):
+            batch_index += args.last_iter + 1
+            if batch_index in args.train.lr_iters:
+                print('update learning rate')
+                for param_group in optimizer.state_dict()['param_groups']:
+                    param_group['lr'] = param_group['lr'] * args.train.lr_gamma
+            data_time_current = time.time() - end
+            data_times.update(data_time_current)
+            data, names = data
+            data = data.to(device)
+            labels = labels.to(device)
+            output = model(data)
+            cls_loss = criterion(output, labels)
+            loss = cls_loss
+            reduced_cls_loss = torch.Tensor([cls_loss.data.item()]).to(device)
+            # torch.distributed.all_reduce(reduced_cls_loss)
+            cls_losses.update(reduced_cls_loss.data.item())
+            reduced_loss = torch.Tensor([loss.data.item()]).to(device)
+            # torch.distributed.all_reduce(reduced_loss)
+            losses.update(reduced_loss.data.item())
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        batch_time_current = time.time() - end
-        batch_times.update(batch_time_current)
-        if args.local_rank == 0 and batch_index % args.print_freq == 0:
-            print('{} [{}/{}]\t'
-                  'Time {:.3f} ({:.3f})\t'
-                  'Data {:.3f} ({:.3f})\t'
-                  'Loss {:.4f} ({:.4f})\t'
-                  'Cls Loss {:.4f} ({:.4f})\t'
-                .format(
-                get_time(), batch_index, len(train_loader),
-                batch_time_current, batch_times.avg,
-                data_time_current, data_times.avg,
-                loss.data.item(), losses.avg,
-                cls_loss.data.item(), cls_losses.avg,
-            )
-            )
-        end = time.time()
-        if (batch_index + 1) % args.save_freq == 0 or batch_index == len(train_loader) - 1:
-            torch.cuda.empty_cache()
-            correct = test(args, model, device)
-            model.train()
-            torch.cuda.empty_cache()
-            state = {
-                'state_dict': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'iter': batch_index + 1
-            }
-            if args.local_rank == 0:
-                save_state(args.save_path, state, batch_index + 1, correct > best_correct)
-                if correct > best_correct:
-                    best_correct = correct
-                print('{}: Curr cr:{:.2f} Best cr:{:.2f}'.format(get_time(),
-                                                                 correct, best_correct))
-
-
+            batch_time_current = time.time() - end
+            batch_times.update(batch_time_current)
+            if args.local_rank == 0 and batch_index % args.print_freq == 0:
+                print('{} [{}/{}]\t'
+                      'Time {:.3f} ({:.3f})\t'
+                      'Data {:.3f} ({:.3f})\t'
+                      'Loss {:.4f} ({:.4f})\t'
+                      'Cls Loss {:.4f} ({:.4f})\t'
+                    .format(
+                    get_time(), batch_index, len(train_loader),
+                    batch_time_current, batch_times.avg,
+                    data_time_current, data_times.avg,
+                    loss.data.item(), losses.avg,
+                    cls_loss.data.item(), cls_losses.avg,
+                )
+                )
+            end = time.time()
+            if (batch_index + 1) % args.save_freq == 0 or batch_index == len(train_loader) - 1:
+                torch.cuda.empty_cache()
+                correct = test(args, model, device)
+                model.train()
+                torch.cuda.empty_cache()
+                state = {
+                    'state_dict': model.state_dict(),
+                    'optimizer': optimizer.state_dict(),
+                    'iter': batch_index + 1
+                }
+                if args.local_rank == 0:
+                    save_state(args.save_path, state, batch_index + 1, correct > best_correct)
+                    if correct > best_correct:
+                        best_correct = correct
+                    print('{}: Curr cr:{:.2f} Best cr:{:.2f}'.format(get_time(),
+                                                                     correct, best_correct))
 def test(args, model, device):
     model.eval()
     ap_meter = AveragePrecisionMeter()
