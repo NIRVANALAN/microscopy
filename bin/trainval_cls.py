@@ -20,6 +20,7 @@ def main(args):
     num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
     args.num_gpus = num_gpus
     args.distributed = False
+
     print(f'Using distributed: {args.distributed}')
     if args.distributed:
         print(f'Local rank: {args.local_rank}')
@@ -78,6 +79,7 @@ def main(args):
 
 def train(args, model, train_loader, criterion, optimizer, device):
     model.train()
+    since = time.time()
     batch_times = AverageMeter(args.print_freq * 2)
     data_times = AverageMeter(args.print_freq * 2)
     cls_losses = AverageMeter(args.print_freq * 2)
@@ -89,12 +91,12 @@ def train(args, model, train_loader, criterion, optimizer, device):
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
+        if epoch in args.train.lr_iters:
+            print('update learning rate')
+            for param_group in optimizer.state_dict()['param_groups']:
+                param_group['lr'] = param_group['lr'] * args.train.lr_gamma
         for batch_index, (data, labels) in enumerate(train_loader):
             batch_index += args.last_iter + 1
-            if batch_index in args.train.lr_iters:
-                print('update learning rate')
-                for param_group in optimizer.state_dict()['param_groups']:
-                    param_group['lr'] = param_group['lr'] * args.train.lr_gamma
             data_time_current = time.time() - end
             data_times.update(data_time_current)
             data, names = data
@@ -146,6 +148,10 @@ def train(args, model, train_loader, criterion, optimizer, device):
                         best_correct = correct
                     print('{}: Curr cr:{:.2f} Best cr:{:.2f}'.format(get_time(),
                                                                      correct, best_correct))
+    time_elapsed = time.time() - since
+    print('Training complete in {:.0f}m {:.0f}s'.format(
+        time_elapsed // 60, time_elapsed % 60))
+    print()
 def test(args, model, device):
     model.eval()
     ap_meter = AveragePrecisionMeter()
