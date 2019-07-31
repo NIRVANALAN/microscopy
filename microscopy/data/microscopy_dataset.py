@@ -65,7 +65,7 @@ class MicroscopyClassification(data.Dataset):
 
 	def __getitem__(self, index):
 		path, target, mask_target = self.images[index]
-		img = Image.open(os.path.join(self.data.root,path)).convert('RGB')
+		img = Image.open(os.path.join(self.root,path)).convert('RGB')
 		img = img.resize((self.img_size, self.img_size), Image.BILINEAR)
 		# if self.crop_size > 0:
 		# 	start_w = int((self.img_size - self.crop_size) * np.random.random())

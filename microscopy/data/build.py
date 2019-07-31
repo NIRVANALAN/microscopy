@@ -29,7 +29,7 @@ def build_train_loader(args):
 			transforms.ToTensor(),
 			normalize,
 		])
-		train_dataset = MicroscopyClassification(args.data.train_list,
+		train_dataset = MicroscopyClassification(args.data.root,args.data.train_list,
 												 args.data.train_img_size, train_transform)
 	train_batch_size = args.data.train_batch_size
 	if args.distributed:
@@ -54,11 +54,11 @@ def build_val_loader(args):
 		normalize,
 	])
 	if args.use_kpt:
-		val_dataset = MicroscopyKeypoint( args.data.test_list,
+		val_dataset = MicroscopyKeypoint( args.data.root,args.data.test_list,
 										 args.data.test_bboxes_list, False, args.data.test_img_size, -1,
 										 args.data.scale, 0, val_transform, args=args)
 	else:
-		val_dataset = MicroscopyClassification(args.root,args.data.test_list,
+		val_dataset = MicroscopyClassification(args.data.root,args.data.test_list,
 											   args.data.test_img_size, val_transform)
 	test_batch_size = args.data.test_batch_size
 	if args.distributed:

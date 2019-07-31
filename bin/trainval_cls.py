@@ -83,7 +83,7 @@ def train(args, model, train_loader, criterion, optimizer, device):
 	cls_losses = AverageMeter(args.print_freq * 2)
 	losses = AverageMeter(args.print_freq * 2)
 	end = time.time()
-	best_ap = 0.0
+	best_correct = 0.0
 	for batch_index, (data, labels) in enumerate(train_loader):
 		batch_index += args.last_iter + 1
 		if batch_index in args.train.lr_iters:
@@ -127,7 +127,7 @@ def train(args, model, train_loader, criterion, optimizer, device):
 		end = time.time()
 		if (batch_index + 1) % args.save_freq == 0 or batch_index == len(train_loader) - 1:
 			torch.cuda.empty_cache()
-			ap = test(args, model, device)
+			correct = test(args, model, device)
 			model.train()
 			torch.cuda.empty_cache()
 			state = {
@@ -136,11 +136,11 @@ def train(args, model, train_loader, criterion, optimizer, device):
 				'iter': batch_index + 1
 			}
 			if args.local_rank == 0:
-				save_state(args.save_path, state, batch_index + 1, ap > best_ap)
-				if ap > best_ap:
-					best_ap = ap
-				print('{}: Curr AP:{:.2f} Best AP:{:.2f}'.format(get_time(),
-																 ap, best_ap))
+				save_state(args.save_path, state, batch_index + 1, correct > best_correct)
+				if correct > best_correct:
+					best_correct = correct
+				print('{}: Curr cr:{:.2f} Best cr:{:.2f}'.format(get_time(),
+																 correct, best_correct))
 
 
 def test(args, model, device):
@@ -154,6 +154,8 @@ def test(args, model, device):
 	num_bbox = torch.zeros(args.model.num_classes).to(device)
 
 	val_loader = build_val_loader(args)
+	correct = 0
+	total = 0
 	with torch.no_grad():
 		for batch_index, (data, labels) in enumerate(val_loader):
 			if args.local_rank == 0 and batch_index % args.print_freq == 0:
@@ -184,17 +186,22 @@ def test(args, model, device):
 			# if args.local_rank == 0:
 			#all_flags = torch.stack(all_flags).view(-1).byte()
 			#all_labels = torch.stack(all_labels).view(-1, labels.size(1))[all_flags]
-			#all_output = torch.stack(all_output).view(-1, output.size(1))[all_flags]
-			#ap_meter.add(all_output.cpu(), all_labels.cpu())
-			output = torch.sigmoid(output)
+            if output.dim == 2:
+				predicted = torch.max(output,1)[1]
 			output = output.data
 			labels = labels.data
-			for i in range(len(args.threshold)):
-				pred = (output > args.threshold[i]).int()
-				# pred [batch * num_classes], labels [batch * num_classes]
-				tp[i] += torch.sum((pred == labels.int()).float() * labels, dim=0)
-				pos_pred[i] += torch.sum(pred, dim=0).float()
-				pos_label[i] += torch.sum(labels, dim=0).float()
+			total += labels.size(0)
+			correct += (predicted == labels).sum().item()
+
+
+			#print(output.size())
+
+			#for i in range(len(args.threshold)):
+			#	pred = (output > args.threshold[i]).int()
+			#	# pred [batch * num_classes], labels [batch * num_classes]
+			#	tp[i] += torch.sum((pred == labels.int()).float() * labels, dim=0)
+			#	pos_pred[i] += torch.sum(pred, dim=0).float()
+			#	pos_label[i] += torch.sum(labels, dim=0).float()
 			# synchronize()
 			# w, h = kpt_output.size()[2:]
 			# kpt_output = kpt_output.view(kpt_output.size(0), kpt_output.size(1), -1)
@@ -217,30 +224,32 @@ def test(args, model, device):
 	# torch.distributed.all_reduce(pos_label)
 	# torch.distributed.all_reduce(true_bbox)
 	# torch.distributed.all_reduce(num_bbox)
-	precision = tp / pos_pred * 100.0
-	recall = tp / pos_label * 100.0
-	f1_score = 2.0 * tp / (pos_pred + pos_label) * 100.0
-	# localization = true_bbox / num_bbox * 100.0
-	if args.local_rank == 0:
-		table = PrettyTable(['T4', 'T4R'])
-		row = ['Average Precision']
-		row.extend(['{:.2f}'.format(100.0 * ap_meter.value()[i]) for i in range(5)])
-		row.append('{:.2f}'.format(100.0 * ap_meter.value().mean()))
-		table.add_row(row)
-		for i in range(len(args.threshold)):
-			row = ['P,R,F1 @ {:.2f}'.format(args.threshold[i])]
-			row.extend(['{:.2f}, {:.2f}, {:.2f}'.format(precision[i][j], recall[i][j], f1_score[i][j])
-						for j in range(5)])
-			row.append('{:.2f}, {:.2f}, {:.2f}'.format(precision[i].mean(), recall[i].mean(), f1_score[i].mean()))
-			table.add_row(row)
-		# row = ['Localization']
-		# row.extend(['{:.2f}'.format(localization[i]) for i in range(5)])
-		# row.append('{:.2f}'.format(localization.mean()))
-		# table.add_row(row)
-		print(table)
-		return 100.0 * ap_meter.value().mean()
-	return 0.0
+#	precision = tp / pos_pred * 100.0
+#	recall = tp / pos_label * 100.0
+#	f1_score = 2.0 * tp / (pos_pred + pos_label) * 100.0
+#	# localization = true_bbox / num_bbox * 100.0
+#	if args.local_rank == 0:
+#		table = PrettyTable(['T4', 'T4R'])
+#		row = ['Average Precision']
+#		row.extend(['{:.2f}'.format(100.0 * ap_meter.value()[i]) for i in range(5)])
+#		row.append('{:.2f}'.format(100.0 * ap_meter.value().mean()))
+#		table.add_row(row)
+#		for i in range(len(args.threshold)):
+#			row = ['P,R,F1 @ {:.2f}'.format(args.threshold[i])]
+#			row.extend(['{:.2f}, {:.2f}, {:.2f}'.format(precision[i][j], recall[i][j], f1_score[i][j])
+#						for j in range(5)])
+#			row.append('{:.2f}, {:.2f}, {:.2f}'.format(precision[i].mean(), recall[i].mean(), f1_score[i].mean()))
+#			table.add_row(row)
+#		# row = ['Localization']
+#		# row.extend(['{:.2f}'.format(localization[i]) for i in range(5)])
+#		# row.append('{:.2f}'.format(localization.mean()))
+#		# table.add_row(row)
+		print('Accuracy of the network on the 10000 test images: %d %%' % (100 * correct / total))
+		return (100 * correct / total)
 
+
+	return 0.0
+#
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description="Softmax classification loss")
