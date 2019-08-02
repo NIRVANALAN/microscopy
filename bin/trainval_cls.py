@@ -1,20 +1,20 @@
+import numpy as np
+import argparse
+import torch.nn.functional as F
+import torch.nn as nn
+import torch
+import yaml
+import time
+from prettytable import PrettyTable
+from easydict import EasyDict
+from microscopy.data import build_train_loader, build_val_loader
+from microscopy.models import build_model
+from microscopy.util import AverageMeter, AveragePrecisionMeter, save_state, FocalLoss, get_time
+from microscopy.dist import synchronize
 import os
 import sys
 if not os.getcwd() in sys.path:
     sys.path.append(os.getcwd())
-from microscopy.dist import synchronize
-from microscopy.util import AverageMeter, AveragePrecisionMeter, save_state, FocalLoss, get_time
-from microscopy.models import build_model
-from microscopy.data import build_train_loader, build_val_loader
-from easydict import EasyDict
-from prettytable import PrettyTable
-import time
-import yaml
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import argparse
-import numpy as np
 
 
 def main(args):
@@ -206,20 +206,20 @@ def test(args, model, device):
             # if args.local_rank == 0:
             #all_flags = torch.stack(all_flags).view(-1).byte()
             #all_labels = torch.stack(all_labels).view(-1, labels.size(1))[all_flags]
-            output = F.softmax(output)
+            output = F.softmax(output, dim=1)
             if output.dim() == 2:
-                predicted = torch.max(output, 1)[1]
+                predicted = torch.max(output, 1)
             else:
-                predicted = torch.max(output, 0)[1]
+                predicted = torch.max(output, 0)
             output = output.data
             labels = labels.data
             total += labels.size(0)
-            correct += (predicted == labels).sum().item()
+            correct += (predicted[1] == labels).sum().item()
 
             # print(output.size())
 
             for i in range(len(args.threshold)):
-                pred = (output > args.threshold[i]).int()
+                pred = (predicted[0] > args.threshold[i]).int()
                 # pred [batch * num_classes], labels [batch * num_classes]
                 tp[i] += torch.sum((pred == labels.int()
                                     ).float() * labels, dim=0)
@@ -272,7 +272,6 @@ def test(args, model, device):
     print('Accuracy of the network on the 10000 test images: %d %%' %
           (100 * correct / total))
     return (100 * correct / total)
-
 
 
 if __name__ == '__main__':
