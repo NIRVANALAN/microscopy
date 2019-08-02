@@ -1,11 +1,13 @@
+import os
+import sys
+if not os.getcwd() in sys.path:
+    sys.path.append(os.getcwd())
 from microscopy.dist import synchronize
 from microscopy.util import AverageMeter, AveragePrecisionMeter, save_state, FocalLoss, get_time
 from microscopy.models import build_model
 from microscopy.data import build_train_loader, build_val_loader
 from easydict import EasyDict
 from prettytable import PrettyTable
-import os
-import sys
 import time
 import yaml
 import torch
@@ -13,8 +15,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import argparse
 import numpy as np
-if not os.getcwd() in sys.path:
-    sys.path.append(os.getcwd())
 
 
 def main(args):
@@ -273,8 +273,6 @@ def test(args, model, device):
           (100 * correct / total))
     return (100 * correct / total)
 
-    # return 0.0
-#
 
 
 if __name__ == '__main__':
