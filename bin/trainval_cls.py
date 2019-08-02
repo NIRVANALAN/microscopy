@@ -1,3 +1,9 @@
+from microscopy.dist import synchronize
+from microscopy.util import AverageMeter, AveragePrecisionMeter, save_state, FocalLoss, get_time
+from microscopy.models import build_model
+from microscopy.data import build_train_loader, build_val_loader
+from easydict import EasyDict
+from prettytable import PrettyTable
 import os
 import sys
 import time
@@ -7,17 +13,11 @@ import argparse
 import numpy as np
 if not os.getcwd() in sys.path:
     sys.path.append(os.getcwd())
-from prettytable import PrettyTable
-from easydict import EasyDict
-from microscopy.data import build_train_loader, build_val_loader
-from microscopy.models import build_model
-from microscopy.util import AverageMeter, AveragePrecisionMeter, save_state, FocalLoss, get_time
-from microscopy.dist import synchronize
-
 
 
 def main(args):
-    num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
+    num_gpus = int(os.environ["WORLD_SIZE"]
+                   ) if "WORLD_SIZE" in os.environ else 1
     args.num_gpus = num_gpus
     args.distributed = False
 
@@ -38,8 +38,10 @@ def main(args):
 
     args.last_iter = -1
     if args.resume:
-        checkpoint = torch.load(args.resume_path, map_location=lambda storage, loc: storage)
-        state_dict = {k.replace('module.', ''): v for k, v in checkpoint['state_dict'].items()}
+        checkpoint = torch.load(
+            args.resume_path, map_location=lambda storage, loc: storage)
+        state_dict = {k.replace('module.', ''): v for k,
+                      v in checkpoint['state_dict'].items()}
         args.last_iter = checkpoint['iter']
         model.load_state_dict(state_dict)
 
@@ -68,7 +70,8 @@ def main(args):
         print(f'using focal loss with gamma {gamma} alpha {alpha}')
         criterion = FocalLoss(gamma=gamma, alpha=alpha)
     elif args.loss.get('cls_loss', None) == 'CE':
-        criterion = torch.nn.CrossEntropyLoss(size_average=args.loss.cls_size_average)
+        criterion = torch.nn.CrossEntropyLoss(
+            size_average=args.loss.cls_size_average)
 
     criterion.to(device)
 
@@ -86,7 +89,7 @@ def train(args, model, train_loader, criterion, optimizer, device):
     losses = AverageMeter(args.print_freq * 2)
     end = time.time()
     best_correct = 0.0
-    num_epochs = args.get('epochs',60)
+    num_epochs = args.get('epochs', 60)
     print(f'num_epochs:{num_epochs}')
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -123,14 +126,14 @@ def train(args, model, train_loader, criterion, optimizer, device):
                       'Data {:.3f} ({:.3f})\t'
                       'Loss {:.4f} ({:.4f})\t'
                       'Cls Loss {:.4f} ({:.4f})\t'
-                    .format(
-                    get_time(), batch_index, len(train_loader),
-                    batch_time_current, batch_times.avg,
-                    data_time_current, data_times.avg,
-                    loss.data.item(), losses.avg,
-                    cls_loss.data.item(), cls_losses.avg,
-                )
-                )
+                      .format(
+                          get_time(), batch_index, len(train_loader),
+                          batch_time_current, batch_times.avg,
+                          data_time_current, data_times.avg,
+                          loss.data.item(), losses.avg,
+                          cls_loss.data.item(), cls_losses.avg,
+                      )
+                      )
             end = time.time()
             if (batch_index + 1) % args.save_freq == 0 or batch_index == len(train_loader) - 1:
                 torch.cuda.empty_cache()
@@ -143,22 +146,27 @@ def train(args, model, train_loader, criterion, optimizer, device):
                     'iter': batch_index + 1
                 }
                 if args.local_rank == 0:
-                    save_state(args.save_path, state, batch_index + 1, correct > best_correct)
+                    save_state(args.save_path, state, batch_index +
+                               1, correct > best_correct)
                     if correct > best_correct:
                         best_correct = correct
-                    print('{}: Curr cr:{:.2f} Best cr:{:.2f}'.format(get_time(),
-                                                                     correct, best_correct))
+                    print('{}: Curr acc:{:.2f} Best acc:{:.2f}'.format(get_time(),
+                                                                       correct, best_correct))
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
     print()
+
+
 def test(args, model, device):
     model.eval()
     ap_meter = AveragePrecisionMeter()
     args.threshold = args.get('threshold', [0.001, 0.01, 0.1, 0.5])
     tp = torch.zeros(len(args.threshold), args.model.num_classes).to(device)
-    pos_label = torch.zeros(len(args.threshold), args.model.num_classes).to(device)
-    pos_pred = torch.zeros(len(args.threshold), args.model.num_classes).to(device)
+    pos_label = torch.zeros(len(args.threshold),
+                            args.model.num_classes).to(device)
+    pos_pred = torch.zeros(len(args.threshold),
+                           args.model.num_classes).to(device)
     true_bbox = torch.zeros(args.model.num_classes).to(device)
     num_bbox = torch.zeros(args.model.num_classes).to(device)
 
@@ -168,7 +176,8 @@ def test(args, model, device):
     with torch.no_grad():
         for batch_index, (data, labels) in enumerate(val_loader):
             if args.local_rank == 0 and batch_index % args.print_freq == 0:
-                print('{} [{}/{}]'.format(get_time(), batch_index, len(val_loader)))
+                print('{} [{}/{}]'.format(get_time(),
+                                          batch_index, len(val_loader)))
             data, names = data
             data = data.to(device).requires_grad_(False)
             labels = labels.to(device).requires_grad_(False)
@@ -196,18 +205,17 @@ def test(args, model, device):
             #all_flags = torch.stack(all_flags).view(-1).byte()
             #all_labels = torch.stack(all_labels).view(-1, labels.size(1))[all_flags]
             if output.dim() == 2:
-                predicted = torch.max(output,1)[1]
+                predicted = torch.max(output, 1)[1]
             else:
-                predicted = torch.max(output,0)[1]
+                predicted = torch.max(output, 0)[1]
             output = output.data
             labels = labels.data
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
+            # print(output.size())
 
-            #print(output.size())
-
-            #for i in range(len(args.threshold)):
+            # for i in range(len(args.threshold)):
             #	pred = (output > args.threshold[i]).int()
             #	# pred [batch * num_classes], labels [batch * num_classes]
             #	tp[i] += torch.sum((pred == labels.int()).float() * labels, dim=0)
@@ -255,12 +263,13 @@ def test(args, model, device):
 #		# row.extend(['{:.2f}'.format(localization[i]) for i in range(5)])
 #		# row.append('{:.2f}'.format(localization.mean()))
 #		# table.add_row(row)
-        print('Accuracy of the network on the 10000 test images: %d %%' % (100 * correct / total))
+        print('Accuracy of the network on the 10000 test images: %d %%' %
+              (100 * correct / total))
         return (100 * correct / total)
-
 
     return 0.0
 #
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Softmax classification loss")
