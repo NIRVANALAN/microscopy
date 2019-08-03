@@ -66,7 +66,7 @@ def build_val_loader(args):
         val_sampler = DistributedTestSampler(val_dataset, args.num_gpus, args.local_rank)
     val_loader = torch.utils.data.DataLoader(val_dataset,
                                              sampler=val_sampler if args.distributed else None,
-                                             batch_size=test_batch_size, shuffle=False,
+                                             batch_size=test_batch_size, shuffle=True,
                                              num_workers=args.data.workers, pin_memory=True,
                                              collate_fn=default_collate, drop_last=False)
     return val_loader
