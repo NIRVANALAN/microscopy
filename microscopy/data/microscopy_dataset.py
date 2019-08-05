@@ -1,4 +1,5 @@
 import traceback
+import random
 import os
 import io
 import sys
@@ -26,7 +27,7 @@ def cv2_2_pil(img):
 
 def read_object_labels(file, header=True):
     images = []
-    num_categories = 0
+    # num_categories = 0
     print('[dataset] read', file)
     with open(file, 'r') as f:
         for line in f:
@@ -36,6 +37,7 @@ def read_object_labels(file, header=True):
             mask_label = (np.asarray(mask_label)).astype(np.float32)
             mask_label = torch.from_numpy(mask_label)
             images.append((img, cell_label, mask_label))
+    random.shuffle(images)
     return images
 
 

@@ -1,21 +1,20 @@
-import numpy as np
-import argparse
-import torch.nn.functional as F
-import torch.nn as nn
-import torch
-import yaml
+import os
+import sys
+if not os.getcwd() in sys.path:
+    sys.path.append(os.getcwd())
 import time
+import yaml
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import argparse
+import numpy as np
 from prettytable import PrettyTable
 from easydict import EasyDict
 from microscopy.data import build_train_loader, build_val_loader
 from microscopy.models import build_model
 from microscopy.util import AverageMeter, AveragePrecisionMeter, save_state, FocalLoss, get_time
 from microscopy.dist import synchronize
-import os
-import sys
-if not os.getcwd() in sys.path:
-    sys.path.append(os.getcwd())
-
 
 def main(args):
     num_gpus = int(os.environ["WORLD_SIZE"]
