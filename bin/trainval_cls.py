@@ -217,13 +217,13 @@ def test(args, model, device):
 
             # print(output.size())
 
-            for i in range(len(args.threshold)):
-                pred = (predicted[0] > args.threshold[i]).int()
-                # pred [batch * num_classes], labels [batch * num_classes]
-                tp[i] += torch.sum((pred == labels.int()
-                                    ).float() * labels, dim=0)
-                pos_pred[i] += torch.sum(pred, dim=0).float()
-                pos_label[i] += torch.sum(labels, dim=0).float()
+            # for i in range(len(args.threshold)):
+            #     pred = (predicted[0] > args.threshold[i]).int()
+            #     # pred [batch * num_classes], labels [batch * num_classes]
+            #     tp[i] += torch.sum((pred == labels.int()
+            #                         ).float() * labels, dim=0)
+            #     pos_pred[i] += torch.sum(pred, dim=0).float()
+            #     pos_label[i] += torch.sum(labels, dim=0).float()
             # synchronize()
             # w, h = kpt_output.size()[2:]
             # kpt_output = kpt_output.view(kpt_output.size(0), kpt_output.size(1), -1)
@@ -246,24 +246,24 @@ def test(args, model, device):
     # torch.distributed.all_reduce(pos_label)
     # torch.distributed.all_reduce(true_bbox)
     # torch.distributed.all_reduce(num_bbox)
-    precision = tp / pos_pred * 100.0
-    recall = tp / pos_label * 100.0
-    f1_score = 2.0 * tp / (pos_pred + pos_label) * 100.0
+    # precision = tp / pos_pred * 100.0
+    # recall = tp / pos_label * 100.0
+    # f1_score = 2.0 * tp / (pos_pred + pos_label) * 100.0
 #	# localization = true_bbox / num_bbox * 100.0
 #	if args.local_rank == 0:
-    table = PrettyTable(['T4', 'T4R', 'S1'])
-    row = ['Average Precision']
-    row.extend(['{:.2f}'.format(100.0 * ap_meter.value()[i])
-                for i in range(5)])
-    row.append('{:.2f}'.format(100.0 * ap_meter.value().mean()))
-    table.add_row(row)
-    for i in range(len(args.threshold)):
-        row = ['P,R,F1 @ {:.2f}'.format(args.threshold[i])]
-        row.extend(['{:.2f}, {:.2f}, {:.2f}'.format(precision[i][j], recall[i][j], f1_score[i][j])
-                    for j in range(5)])
-        row.append('{:.2f}, {:.2f}, {:.2f}'.format(
-            precision[i].mean(), recall[i].mean(), f1_score[i].mean()))
-        table.add_row(row)
+    # table = PrettyTable(['T4', 'T4R', 'S1'])
+    # row = ['Average Precision']
+    # row.extend(['{:.2f}'.format(100.0 * ap_meter.value()[i])
+    #             for i in range(5)])
+    # row.append('{:.2f}'.format(100.0 * ap_meter.value().mean()))
+    # table.add_row(row)
+    # for i in range(len(args.threshold)):
+    #     row = ['P,R,F1 @ {:.2f}'.format(args.threshold[i])]
+    #     row.extend(['{:.2f}, {:.2f}, {:.2f}'.format(precision[i][j], recall[i][j], f1_score[i][j])
+    #                 for j in range(5)])
+    #     row.append('{:.2f}, {:.2f}, {:.2f}'.format(
+    #         precision[i].mean(), recall[i].mean(), f1_score[i].mean()))
+    #     table.add_row(row)
 #		# row = ['Localization']
 #		# row.extend(['{:.2f}'.format(localization[i]) for i in range(5)])
 #		# row.append('{:.2f}'.format(localization.mean()))
