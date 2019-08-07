@@ -1,15 +1,20 @@
-import torch
-import torch.optim as optim
-from torch.optim import lr_scheduler
-import numpy as np
-import time
-import copy
-import yaml
-import argparse
-from easydict import EasyDict
-from unet.model import ResNetUNet
-from unet.train import train_model
+
+import os
+import sys
+if not os.getcwd() in sys.path:
+    sys.path.append(os.getcwd())
 from unet.data import build_val_loader, build_train_loader
+from unet.train import train_model
+from unet.model import ResNetUNet
+from easydict import EasyDict
+import argparse
+import yaml
+import copy
+import time
+import numpy as np
+from torch.optim import lr_scheduler
+import torch.optim as optim
+import torch
 
 
 def main(args):
