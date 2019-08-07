@@ -9,14 +9,15 @@ import argparse
 from easydict import EasyDict
 from unet.model.ResNetUNet import ResNetUNet
 from unet.train import train_model
+from unet.data import build_train_loader, build_val_loader
 from unet import loss
 
 
 def main(args):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device('cuda')
     print(device)
 
-    num_class = 7
+    num_class = args.model.get('num_classes', 7)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.backends.cudnn.benchmark = True
@@ -34,8 +35,34 @@ def main(args):
     exp_lr_scheduler = lr_scheduler.StepLR(
         optimizer_ft, step_size=10, gamma=0.1)
     num_epochs = args.get('epochs', 60)
+
+# image_datasets = {
+#     'train': train_set, 'val': val_set
+# }
+
+# batch_size = 25
+
+# dataloaders = {
+#     'train': DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=0),
+#     'val': DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=0)
+# }
+
+# dataset_sizes = {
+#     x: len(image_datasets[x]) for x in image_datasets.keys()
+# }
+
+# print(f'dataset_size:{dataset_sizes}')
+
+    train_loader = build_train_loader(args)
+    val_loader = build_val_loader(args)
+    dataloaders = {
+        'train': train_loader,
+        'val': val_loader
+    }
+
+    torch.cuda.empty_cache()
     model = train_model(model, optimizer_ft, exp_lr_scheduler,
-                        device=device, num_epochs=num_epochs)
+                        device, dataloaders, num_epochs=num_epochs)
 
 
 if __name__ == '__main__':
