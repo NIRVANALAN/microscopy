@@ -7,10 +7,9 @@ import copy
 import yaml
 import argparse
 from easydict import EasyDict
-from unet.model.ResNetUNet import ResNetUNet
+from unet.model import ResNetUNet
 from unet.train import train_model
-from unet.data import build_train_loader, build_val_loader
-from unet import loss
+from unet.data import build_val_loader, build_train_loader
 
 
 def main(args):
