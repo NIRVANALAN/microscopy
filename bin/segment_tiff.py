@@ -37,7 +37,7 @@ def mkdir_if_not(file_dir):
 
 
 def sliding_window_crop(save_dir, patch_size=64, slide_patch_ratio=1 / 2, threshold=0.5,
-						extra_threshold=0.2, bg_ratio=0.05):  # for membrane and desmosome
+						extra_threshold=0.2, bg_ratio=0.1, val_slide='NA_T4_122117_01'):  # for membrane and desmosome
 	save_root_dir = osp.join(save_dir, str(patch_size), f'ts{threshold}_ex{extra_threshold}_b'
 														f'g{bg_ratio}')
 	if not osp.isdir(save_root_dir):
@@ -56,43 +56,48 @@ def sliding_window_crop(save_dir, patch_size=64, slide_patch_ratio=1 / 2, thresh
 		mkdir_if_not(save_slide_label_dir)
 		raw_tiff = tiff.imread(osp.join(raw_dir, slide))
 		label = np.load(osp.join(label_dir, slide.replace(suffix, 'npy')))
-		x, y, stride = 0, 0, int(patch_size * slide_patch_ratio)
 		shape = raw_tiff.shape
-		img_num = 0
-		# while (x + patch_size) < shape[0] and (y + patch_size) < shape[1]:
-		for x in trange(0, shape[0] - patch_size, stride):
-			for y in range(0, shape[1] - patch_size, stride):
-				tile_label = label[x:x + patch_size, y:y + patch_size]
-				tile_img = raw_tiff[x:x + patch_size, y:y + patch_size]
-				proportion = np.count_nonzero(tile_label) / tile_label.size
-				if proportion == 0.0:
-					pure_bg.append((tile_img, tile_label))
-				# continue
-				detail_proportion = np.array([np.count_nonzero(tile_label == i) for i in (1, 2, 5)]).sum() / \
-									tile_label.size
-				if proportion >= threshold or detail_proportion >= extra_threshold:
-					# print(f'detail_proportion:{detail_proportion}') if detail_proportion >= extra_threshold else None
-					# print(f'x:{x} y:{y}  proportion:{proportion}')
+		if slide_name == val_slide:
+			print(f'Saving val_slide:{val_slide}')
+			x, y, stride = 0, 0, patch_size
+			for x in trange(0, shape[0] - patch_size, stride):
+				for y in range(0, shape[1] - patch_size, stride):
+					tile_label = label[x:x + patch_size, y:y + patch_size]
 					tile_img = raw_tiff[x:x + patch_size, y:y + patch_size]
 					np.save(osp.join(save_slide_raw_dir, f'{x}_{y}'), tile_img)
 					np.save(osp.join(save_slide_label_dir, f'{x}_{y}'), tile_label)
-					img_num += 1
-					# stat
-					for i in range(len(category)):
-						organelle_stat[i] += np.count_nonzero(tile_label == i)
-		# x += stride
-		# y += stride
-		# if y + patch_size >= shape[1]:
-		# 	y = 0
-		# 	x += stride
-		random.shuffle(pure_bg)
-		for i in range(int(img_num * bg_ratio)):
-			bg = pure_bg[i]
-			np.save(osp.join(save_slide_raw_dir, f'bg_{i}'), bg[0])
-			np.save(osp.join(save_slide_label_dir, f'bg_{i}'), bg[1])
-		print(f'class in this slide: {np.unique(label).tolist()}')
-		organelle_stat /= (patch_size ** 2)
-		print(f'{slide}  {img_num} images saved, class distribution: {organelle_stat.tolist()} bg: {len(pure_bg)}')
+			pass
+		else:
+			x, y, stride = 0, 0, int(patch_size * slide_patch_ratio)
+			img_num = 0
+			for x in trange(0, shape[0] - patch_size, stride):
+				for y in range(0, shape[1] - patch_size, stride):
+					tile_label = label[x:x + patch_size, y:y + patch_size]
+					tile_img = raw_tiff[x:x + patch_size, y:y + patch_size]
+					proportion = np.count_nonzero(tile_label) / tile_label.size
+					if proportion == 0.0:
+						pure_bg.append((tile_img, tile_label))
+					# continue
+					detail_proportion = np.array([np.count_nonzero(tile_label == i) for i in (1, 2, 5)]).sum() / \
+										tile_label.size
+					if proportion >= threshold or detail_proportion >= extra_threshold:
+						# print(f'detail_proportion:{detail_proportion}') if detail_proportion >= extra_threshold else None
+						# print(f'x:{x} y:{y}  proportion:{proportion}')
+						tile_img = raw_tiff[x:x + patch_size, y:y + patch_size]
+						np.save(osp.join(save_slide_raw_dir, f'{x}_{y}'), tile_img)
+						np.save(osp.join(save_slide_label_dir, f'{x}_{y}'), tile_label)
+						img_num += 1
+						# stat
+						for i in range(len(category)):
+							organelle_stat[i] += np.count_nonzero(tile_label == i)
+			random.shuffle(pure_bg)
+			for i in range(int(img_num * bg_ratio)):
+				bg = pure_bg[i]
+				np.save(osp.join(save_slide_raw_dir, f'bg_{i}'), bg[0])
+				np.save(osp.join(save_slide_label_dir, f'bg_{i}'), bg[1])
+			print(f'class in this slide: {np.unique(label).tolist()}')
+			organelle_stat /= (patch_size ** 2)
+			print(f'{slide}  {img_num} images saved, class distribution: {organelle_stat.tolist()} bg: {len(pure_bg)}')
 
 
 def generate_all_mask(save_dir, dataset='D://repos//UTexas//microscopy//data'):
