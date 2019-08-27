@@ -230,7 +230,7 @@ def generate_whole_list(dataset_root):
 	pass
 
 
-def generate_list(dataset_root):
+def generate_list(dataset_root, val_slide='NA_T4_122117_01'):
 	dataset_patch = os.listdir(dataset_root)
 	for patch in dataset_patch:
 		patch_root = osp.join(dataset_root, patch)
@@ -238,7 +238,8 @@ def generate_list(dataset_root):
 		for ts in threshold:
 			threshold_dir = osp.join(patch_root, ts)
 			slides = os.listdir(threshold_dir)
-			all_list = []
+			train_list = []
+			test_list = []
 			for slide in slides:
 				if 'txt' in slide:
 					continue
@@ -251,19 +252,23 @@ def generate_list(dataset_root):
 					(os.path.join(slide_img_root, img).replace("\\", "/")) + ';' + (
 						osp.join(slide_label_root, img).replace("\\", "/")) + f';{cell_type}\n'
 					for img in imgs]
-				with open(os.path.join(threshold_dir, slide, 'all_list.txt'), 'w') as filehandle:
+				with open(os.path.join(threshold_dir, slide, 'train_list.txt'), 'w') as filehandle:
 					filehandle.writelines(slide_img)
-				all_list.extend(slide_img)
+				if slide == val_slide:
+					test_list.extend(slide_img)
+					pass
+				else:
+					train_list.extend(slide_img)
 			print(ts)
-			random.shuffle(all_list)
-			train_list = all_list[:int(0.8 * all_list.__len__())]
-			test_list = all_list[train_list.__len__():]
-			with open(os.path.join(threshold_dir, f'all_list.txt'), 'w') as filehandle:
-				filehandle.writelines(all_list)
-				print(f'total_list len: {all_list.__len__()}')
+			random.shuffle(train_list)
+			# train_list = train_list[:int(0.8 * train_list.__len__())]
+			# test_list = train_list[train_list.__len__():]
 			with open(os.path.join(threshold_dir, f'train_list.txt'), 'w') as filehandle:
 				filehandle.writelines(train_list)
-				print(f'train_list len: {train_list.__len__()}')
+				print(f'total_list len: {train_list.__len__()}')
+			# with open(os.path.join(threshold_dir, f'train_list.txt'), 'w') as filehandle:
+			# 	filehandle.writelines(train_list)
+			# 	print(f'train_list len: {train_list.__len__()}')
 			with open(os.path.join(threshold_dir, f'test_list.txt'), 'w') as filehandle:
 				filehandle.writelines(test_list)
 				print(f'test_list len: {test_list.__len__()}')
@@ -275,8 +280,8 @@ save_root = os.path.join('/work/06633/ylan/maverick2/data/dataset/dataset')
 
 for ps in [64, 128]:
 	for ts in [0.3, 0.5]:
- 		sliding_window_crop(save_dir=save_root, patch_size=ps, threshold=ts,bg_ratio=0.1)
-#sliding_window_crop(save_dir=save_root, patch_size=64, threshold=0.5, slide_patch_ratio=0.5)
+		sliding_window_crop(save_dir=save_root, patch_size=ps, threshold=ts, bg_ratio=0.1)
+# sliding_window_crop(save_dir=save_root, patch_size=64, threshold=0.5, slide_patch_ratio=0.5)
 # generate_whole_list(save_root)
 generate_list(save_root)
 
