@@ -278,10 +278,10 @@ def generate_list(dataset_root, val_slide='NA_T4_122117_01'):
 # patch_size = 1024
 save_root = os.path.join('/work/06633/ylan/maverick2/data/dataset/dataset')
 
-for ps in [64, 128]:
+for ps in [128, 256]:
 	for ts in [0.3, 0.5]:
 		sliding_window_crop(save_dir=save_root, patch_size=ps, threshold=ts, bg_ratio=0.1)
-# sliding_window_crop(save_dir=save_root, patch_size=64, threshold=0.5, slide_patch_ratio=0.5)
+#sliding_window_crop(save_dir=save_root, patch_size=64, threshold=0.5, slide_patch_ratio=0.5,bg_ratio=0.1)
 # generate_whole_list(save_root)
 generate_list(save_root)
 
