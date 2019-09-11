@@ -37,7 +37,7 @@ def mkdir_if_not(file_dir):
 
 
 def sliding_window_crop(save_dir, patch_size=64, slide_patch_ratio=0.25):  # for membrane and desmosome
-	save_root_dir = osp.join(save_dir, str(patch_size), f'_r{slide_patch_ratio}')
+	save_root_dir = osp.join(save_dir, str(patch_size), f'ratio{slide_patch_ratio}')
 	if not osp.isdir(save_root_dir):
 		os.makedirs(save_root_dir)
 	raw_slide = os.listdir(raw_dir)
@@ -227,6 +227,7 @@ def generate_list(dataset_root, val_slide='NA_T4_122117_01'):
 			slides = os.listdir(threshold_dir)
 			train_list = []
 			test_list = []
+			data_list = [[], [], []]  # S1 T4 T4R
 			for slide in slides:
 				if 'txt' in slide:
 					continue
@@ -239,13 +240,18 @@ def generate_list(dataset_root, val_slide='NA_T4_122117_01'):
 					(os.path.join(slide_img_root, img).replace("\\", "/")) + ';' + (
 						osp.join(slide_label_root, img).replace("\\", "/")) + f';{cell_type}\n'
 					for img in imgs]
-				with open(os.path.join(threshold_dir, slide, 'train_list.txt'), 'w') as filehandle:
+				with open(os.path.join(threshold_dir, slide, 'data_list.txt'), 'w') as filehandle:
 					filehandle.writelines(slide_img)
-				if slide == val_slide:
-					test_list.extend(slide_img)
-					pass
-				else:
-					train_list.extend(slide_img)
+				# if slide == val_slide:
+				# 	test_list.extend(slide_img)
+				# else:
+				data_list[raws.index(cell_type)].append(slide_img)
+			# cross val later
+			for cell_type_img in data_list:
+				# for _ in cell_type_img[1:]:
+				train_list.extend(sum(cell_type_img[1:], []))
+				test_list.extend(cell_type_img[0])
+			# train_list.extend(slide_img)
 			print(ts)
 			random.shuffle(train_list)
 			# train_list = train_list[:int(0.8 * train_list.__len__())]
