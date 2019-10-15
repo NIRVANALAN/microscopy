@@ -18,9 +18,10 @@ s1 = '../data/S1_Helios_1of3_v1270.tiff'
 t4r = '../data/CL_T4R_180807_06.tif'
 mask_root = 'D://repos//UTexas//extracted_data//'
 
-extracted_root = '/work/06633/ylan/maverick2/data/dataset/raw/extracted_data'
+# extracted_root = '/work/06633/ylan/maverick2/data/dataset/raw/extracted_data'
+extracted_root = '/mnt/lustre/lanyushi/repos/ut/extracted_data'
 raw_dir = osp.join(extracted_root, 'raw')
-label_dir = osp.join(extracted_root, 'label')
+label_dir = osp.join(extracted_root, 'labels')
 
 # a = tiff.imread(s1)
 # a = np.uint16(a)
@@ -238,7 +239,7 @@ def generate_list(dataset_root, val_slide='NA_T4_122117_01'):
 			test_list = []
 			data_list = [[], [], []]  # S1 T4 T4R
 			for slide in slides:
-				if 'txt' in slide:
+				if 'txt' in slide or 'npy' in slide:
 					continue
 				cell_type = slide.split('_')[1] if 'T4' in slide else 'S1'
 				relative_root = osp.join(patch, ts)
@@ -279,13 +280,13 @@ def generate_list(dataset_root, val_slide='NA_T4_122117_01'):
 
 
 # patch_size = 1024
-save_root = os.path.join('/work/06633/ylan/maverick2/data/dataset/dataset')
-
-for ps in [512, 768, 1024]:
-	# for ps in [64, 96, 128]:
-	# for ratio in [1]:
-	for ratio in [0.25, 0.5]:
-		sliding_window_crop(save_dir=save_root, patch_size=ps, slide_patch_ratio=ratio)
+save_root = os.path.join('/mnt/lustre/lanyushi/repos/ut/dataset')
+#
+# for ps in [512, 768, 1024]:
+# 	# for ps in [64, 96, 128]:
+# 	# for ratio in [1]:
+# 	for ratio in [0.25, 0.5]:
+# 		sliding_window_crop(save_dir=save_root, patch_size=ps, slide_patch_ratio=ratio)
 generate_list(save_root)
 
 # generate_all_mask(save_root)
