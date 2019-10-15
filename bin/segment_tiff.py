@@ -231,6 +231,8 @@ def generate_list(dataset_root, val_slide='NA_T4_122117_01'):
 		patch_root = osp.join(dataset_root, patch)
 		threshold = os.listdir(patch_root)
 		for ts in threshold:
+			if 'npy' in ts:
+				continue
 			threshold_dir = osp.join(patch_root, ts)
 			slides = os.listdir(threshold_dir)
 			if len(slides) < 11:
@@ -283,9 +285,9 @@ def generate_list(dataset_root, val_slide='NA_T4_122117_01'):
 save_root = os.path.join('/mnt/lustre/lanyushi/repos/ut/dataset')
 #
 # for ps in [512, 768, 1024]:
-# 	# for ps in [64, 96, 128]:
-# 	# for ratio in [1]:
-# 	for ratio in [0.25, 0.5]:
+# # 	# for ps in [64, 96, 128]:
+# # 	# for ratio in [1]:
+# 	for ratio in [1.0]:
 # 		sliding_window_crop(save_dir=save_root, patch_size=ps, slide_patch_ratio=ratio)
 generate_list(save_root)
 
